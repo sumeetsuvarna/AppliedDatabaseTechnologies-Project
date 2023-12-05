@@ -117,48 +117,89 @@ def main():
 
     elif operation == "Update":
         st.subheader("Update a Job Post")
-        job_id = st.number_input("Enter the Job Post ID to update", min_value=0, format="%d")
-        job_post = None
+        job_id = st.number_input("Enter the Job Post ID to update", min_value=1, format="%d")
 
+        # Load the job post data when the button is clicked and store it in the session state
         if st.button('Load Job Post'):
-            job_post = get_job_post_by_id(conn, job_id)
-             
-            if job_post:
-                 job_post_df = pd.DataFrame([job_post], columns=['ID', 'Title', 'Term', 'Duration', 'JobDescription', 'JobRequirement', 'RequiredQualification', 'Salary', 'isIT', 'isPosted', 'companyid', 'locationID', 'timelineID', 'additional_InfoID'])
-                 st.table(job_post_df)
-
-        # Allow user to enter new values for the fields they want to update
-        with st.form(key='update_job_post_form'):
-            new_title = st.text_input('Title', value=job_post[1] if job_post else '')
-            new_term = st.text_area('Term', value=job_post[2] if job_post else '')
-            new_duration = st.text_area('Duration', value=job_post[3] if job_post else '')
-            new_jobdescription = st.text_area('Job Description', value=job_post[4] if job_post else '')
-            new_jobrequirement = st.text_area('Job Requirement', value=job_post[5] if job_post else '')
-            new_requiredqualification = st.text_area('Required Qualification', value=job_post[6] if job_post else '')
-            new_salary = st.text_input('Salary', value=job_post[7] if job_post else '')
-            new_isIT = st.checkbox('Is IT', value=job_post[8] if job_post else False)
-            new_isPosted = st.checkbox('Is Posted', value=job_post[9] if job_post else False)
-
-            submit_update = st.form_submit_button('Update Job Post')
-
-        if submit_update:
-            update_data = {}
-            if job_post:
-                if new_title != job_post[1]: update_data['title'] = new_title
-                if new_term != job_post[2]: update_data['term'] = new_term
-                if new_duration != job_post[3]: update_data['duration'] = new_duration
-                if new_jobdescription != job_post[4]: update_data['jobdescription'] = new_jobdescription
-                if new_jobrequirement != job_post[5]: update_data['jobrequirement'] = new_jobrequirement
-                if new_requiredqualification != job_post[6]: update_data['requiredqualification'] = new_requiredqualification
-                if str(new_salary) != str(job_post[7]): update_data['salary'] = new_salary
-                if new_isIT is not job_post[8]: update_data['isIT'] = new_isIT
-                if new_isPosted is not job_post[9]: update_data['isPosted'] = new_isPosted
-
-                # Update the job post record with the new values
-                update_job_post_fields(conn, job_id, update_data)
-                st.success("Job post updated successfully.")
+            st.session_state.job_post_data = get_job_post_by_id(conn, job_id)
+            if st.session_state.job_post_data:
+                job_post_df = pd.DataFrame([st.session_state.job_post_data], columns=['ID', 'Title', 'Term', 'Duration', 'JobDescription', 'JobRequirement', 'RequiredQualification', 'Salary', 'isIT', 'isPosted', 'companyid', 'locationID', 'timelineID', 'additional_InfoID'])
+                st.table(job_post_df)
             else:
-                st.error("Please load a job post before updating.")
+                st.error("Job Post not found. Please enter a valid Job Post ID.")
+
+        # Proceed with the update only if the job post data is loaded
+        if 'job_post_data' in st.session_state and st.session_state.job_post_data:
+            with st.form(key='update_job_post_form'):
+                new_title = st.text_input('Title', value=st.session_state.job_post_data[1])
+                new_term = st.text_area('Term', value=st.session_state.job_post_data[2])
+                new_duration = st.text_area('Duration', value=st.session_state.job_post_data[3])
+                new_jobdescription = st.text_area('Job Description', value=st.session_state.job_post_data[4])
+                new_jobrequirement = st.text_area('Job Requirement', value=st.session_state.job_post_data[5])
+                new_requiredqualification = st.text_area('Required Qualification', value=st.session_state.job_post_data[6])
+                new_salary = st.text_input('Salary', value=str(st.session_state.job_post_data[7]))
+                new_isIT = st.checkbox('Is IT', value=bool(st.session_state.job_post_data[8]))
+                new_isPosted = st.checkbox('Is Posted', value=bool(st.session_state.job_post_data[9]))
+
+                submit_update = st.form_submit_button('Update Job Post')
+
+            if submit_update:
+                update_query = '''
+                        UPDATE JobPost
+                        SET Title = ?, Term = ?, Duration = ?, JobDescription = ?, JobRequirement = ?, RequiredQualification = ?, Salary = ?, isIT = ?, isPosted = ?
+                        WHERE ID = ?'''
+                update_values = (new_title, new_term, new_duration, new_jobdescription, new_jobrequirement,
+                             new_requiredqualification, new_salary, new_isIT, new_isPosted, job_id)
+            
+                cursor = conn.cursor()
+                cursor.execute(update_query, update_values)
+                conn.commit()
+                st.success("Job post updated successfully.")
+                # Clear the session state after updating
+                del st.session_state.job_post_data
+
+
+
+    # elif operation == "Update":
+    #     st.subheader("Update a Job Post")
+    #     job_id = st.number_input("Enter the Job Post ID to update", min_value=0, format="%d")
+    #     job_post_data = None
+
+    #     if st.button('Load Job Post'):
+    #         job_post_data = get_job_post_by_id(conn, job_id)
+    #         ob_post = None
+    #         if job_post_data:
+    #             job_post_df = pd.DataFrame([job_post_data], columns=['ID', 'Title', 'Term', 'Duration', 'JobDescription', 'JobRequirement', 'RequiredQualification', 'Salary', 'isIT', 'isPosted', 'companyid', 'locationID', 'timelineID', 'additional_InfoID'])
+    #             st.table(job_post_df)
+    #         else:
+    #             st.error("Job Post not found. Please enter a valid Job Post ID.")
+
+    #     if job_post_data:
+    #         with st.form(key='update_job_post_form'):
+    #             new_title = st.text_input('Title', value=job_post_data[1])
+    #             new_term = st.text_area('Term', value=job_post_data[2])
+    #             new_duration = st.text_area('Duration', value=job_post_data[3])
+    #             new_jobdescription = st.text_area('Job Description', value=job_post_data[4])
+    #             new_jobrequirement = st.text_area('Job Requirement', value=job_post_data[5])
+    #             new_requiredqualification = st.text_area('Required Qualification', value=job_post_data[6])
+    #             new_salary = st.text_input('Salary', value=str(job_post_data[7]))
+    #             new_isIT = st.checkbox('Is IT', value=bool(job_post_data[8]))
+    #             new_isPosted = st.checkbox('Is Posted', value=bool(job_post_data[9]))
+
+    #             submit_update = st.form_submit_button('Update Job Post')
+
+    #         if submit_update and job_post_data:
+    #             update_query = '''
+    #                     UPDATE JobPost
+    #                     SET title = ?, term = ?, duration = ?, jobdescription = ?, jobrequirement = ?, requiredqualification = ?, salary = ?, isIT = ?, isPosted = ?
+    #                     WHERE ID = ?'''
+    #             update_values = (new_title, new_term, new_duration, new_jobdescription, new_jobrequirement,
+    #                          new_requiredqualification, new_salary, new_isIT, new_isPosted, job_id)
+            
+    #             cursor = conn.cursor()
+    #             cursor.execute(update_query, update_values)
+
+    #             st.success("Job post updated successfully.")
 
 
     # elif operation == "Update":
