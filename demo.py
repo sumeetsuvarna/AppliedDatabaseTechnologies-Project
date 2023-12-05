@@ -67,14 +67,6 @@ def code_main():
     for i,j in enumerate(df.title):
         if st.sidebar.button(j, key='b'+str(i), use_container_width=True):
             st.write(j)
-        
-git remote add origin https://github.iu.edu/ssuvarn/ADT-Fall2023-JobConnect_RecruitmentPortal
-
-
-git push -u origin master
-
-   
-code_main()
 
 
 
